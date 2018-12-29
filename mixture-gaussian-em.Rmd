@@ -1,22 +1,50 @@
 ---
-title: "Mixture models and EM"
+title: "Mixture of Gaussians models and Expectation Maximization"
 output: html_notebook
 ---
 
+This is an exploration on using Expectation Maximization to estimate the parameters of a simple mixture of gaussians model in R . I followed Bishop (2006), pag 430 as a guide.  
 
 ```{r}
 library(ggplot2)
+```
 
+## Gaussian Distribution
+
+
+
+```{r}
 set.seed(42)
 qplot(rnorm(1000))
 
 ```
 
-```{r}
-n = 100000
+## Mixtures of Gaussians
 
+A Gaussian mixture model is a simple linear superposition of Gaussian components, where a discrete latent variable controls what Gaussian distribution produces a given datapoint.
+
+
+$$p(\mathbf{x}) = \sum_{k=1}^K \pi_{k} \mathcal{N}(\mathbf{x} \mid \mathbf{\mu_{k}},\mathbf{\Sigma_{k}} )  $$
+
+The latent variable $\mathbf{z}$ is an indicator binary random variable, in which only a particular element $z_{k}$ is equal to 1 and all other elements are equal to 0. 
+
+
+
+
+```{r}
+
+n = 100
 p = c(1,1,1)
 z = rmultinom(n,1,p)
+
+```
+
+
+
+
+
+
+```{r}
 
 df = data.frame(
   a = rnorm(n,0,5), 
@@ -82,4 +110,3 @@ pi = as.vector(pi_t)
 pi = c(0,0,1)
 
 ```
-
