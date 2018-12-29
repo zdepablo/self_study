@@ -1,0 +1,85 @@
+---
+title: "Mixture models and EM"
+output: html_notebook
+---
+
+
+```{r}
+library(ggplot2)
+
+set.seed(42)
+qplot(rnorm(1000))
+
+```
+
+```{r}
+n = 100000
+
+p = c(1,1,1)
+z = rmultinom(n,1,p)
+
+df = data.frame(
+  a = rnorm(n,0,5), 
+  b = rnorm(n,10,1),
+  c = rnorm(n,20,5)
+)
+
+x = colSums(z * t(as.matrix(df)))
+
+qplot(rowSums(z))
+qplot(x,bins = 100)
+
+```
+
+```{r}
+
+pi = c(0.1,0.4,0.5)
+mu = c(0,5,25)
+sigma = c(1,1,1)
+
+
+```
+
+```{r}
+
+gamma = data.frame(
+ '1' = pi[1] * dnorm(x,mu[1],sigma[1]), 
+ '2' = pi[2] * dnorm(x,mu[2],sigma[2]),
+ '3' = pi[3] * dnorm(x,mu[3],sigma[3])
+)
+
+total = rowSums(gamma)
+gamma = gamma / total
+assignments = max.col(gamma)
+
+mu_t = c(sum(gamma[,1] * x) / sum(gamma[,1]),
+         sum(gamma[,2] * x) / sum(gamma[,2]),
+         sum(gamma[,3] * x) / sum(gamma[,3]))
+
+
+sigma_t = c(
+  sqrt(sum(gamma[,1] * (x - mu_t[1])^2) / sum(gamma[,1])),
+  sqrt(sum(gamma[,2] * (x - mu_t[2])^2) / sum(gamma[,2])),
+  sqrt(sum(gamma[,3] * (x - mu_t[3])^2) / sum(gamma[,3]))
+)
+
+
+pi_t = prop.table(table(assignments))
+
+mu_t
+sigma_t
+pi_t
+
+mu = mu_t
+sigma = sigma_t
+pi = as.vector(pi_t)
+
+
+```
+
+```{r}
+
+pi = c(0,0,1)
+
+```
+
