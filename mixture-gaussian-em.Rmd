@@ -29,11 +29,8 @@ $$p(\mathbf{x}) = \sum_{k=1}^K \pi_{k} \mathcal{N}(\mathbf{x} \mid \mathbf{\mu_{
 The latent variable $\mathbf{z}$ is an indicator binary random variable, in which only a particular element $z_{k}$ is equal to 1 and all other elements are equal to 0. 
 
 
-
-
 ```{r}
-
-n = 100
+n = 1000
 p = c(1,1,1)
 z = rmultinom(n,1,p)
 
@@ -54,19 +51,44 @@ df = data.frame(
 
 x = colSums(z * t(as.matrix(df)))
 
-qplot(rowSums(z))
-qplot(x,bins = 100)
+```
+
+```{r}
+
+data = data.frame(
+  'x' = x, 
+  'z' =sapply(1:n, function(x) which(z[,x] == 1) )   
+)
+
+
+ggplot(data, aes(x = x)  ) +
+  geom_histogram( aes( fill = factor(z) ), binwidth = 1 ) +
+  geom_density( aes(y=1 * ..count.., color = factor(z) )  ) 
 
 ```
+
 
 ```{r}
 
 pi = c(0.1,0.4,0.5)
 mu = c(0,5,25)
-sigma = c(1,1,1)
-
+sigma = c(1,2,1)
 
 ```
+
+
+
+```{r}
+
+ggplot(data = data.frame(x = c(-20, 45)), aes(x)) +
+  stat_function(fun = dnorm, n = 101, args = list(mean=mu[1], sd=sigma[1])) +
+  stat_function(fun = dnorm, n = 101, args = list(mean=mu[2], sd=sigma[2])) +
+  stat_function(fun = dnorm, n = 101, args = list(mean=mu[3], sd=sigma[3])) +
+  scale_y_continuous()
+
+```
+
+
 
 ```{r}
 
@@ -101,6 +123,12 @@ pi_t
 mu = mu_t
 sigma = sigma_t
 pi = as.vector(pi_t)
+
+ggplot(data = data.frame(x = c(-20, 45)), aes(x)) +
+  stat_function(fun = dnorm, n = 101, args = list(mean=mu[1], sd=sigma[1])) +
+  stat_function(fun = dnorm, n = 101, args = list(mean=mu[2], sd=sigma[2])) +
+  stat_function(fun = dnorm, n = 101, args = list(mean=mu[3], sd=sigma[3])) +
+  scale_y_continuous()
 
 
 ```
