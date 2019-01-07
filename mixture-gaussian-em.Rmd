@@ -74,67 +74,141 @@ pi = c(0.1,0.4,0.5)
 mu = c(0,5,25)
 sigma = c(1,2,1)
 
+params = list('mu' = mu, 'sigma' = sigma, 'pi' = pi )  
+
 ```
 
 
 
 ```{r}
 
-ggplot(data = data.frame(x = c(-20, 45)), aes(x)) +
-  stat_function(fun = dnorm, n = 101, args = list(mean=mu[1], sd=sigma[1])) +
-  stat_function(fun = dnorm, n = 101, args = list(mean=mu[2], sd=sigma[2])) +
-  stat_function(fun = dnorm, n = 101, args = list(mean=mu[3], sd=sigma[3])) +
+
+#ggplot(data = data.frame(x = c(-20, 45)), aes(x)) +
+
+ggplot(data, aes(x = x)  ) +
+  geom_histogram( aes( fill = factor(z) ), binwidth = 1 ) +
+  geom_density( aes(y=1 * ..count.., color = factor(z) ) ) +
+  stat_function(fun = function(x) n * pi[1] * dnorm(x, mean=mu[1], sd=sigma[1]), n = 101 ) +
+  stat_function(fun = function(x) n * pi[2] * dnorm(x, mean=mu[2], sd=sigma[2]), n = 101 ) +
+  stat_function(fun = function(x) n * pi[3] * dnorm(x, mean=mu[3], sd=sigma[3]), n = 101 ) +
   scale_y_continuous()
 
 ```
 
 
-
 ```{r}
 
-gamma = data.frame(
+loglikelihood <- function(x, pi,mu,sigma) {
+  sum(log(rowSums(point_likelihood(x, pi,mu,sigma))))
+}
+
+point_likelihood <- function(x, pi,mu,sigma) {
+ gamma = data.frame(
  '1' = pi[1] * dnorm(x,mu[1],sigma[1]), 
  '2' = pi[2] * dnorm(x,mu[2],sigma[2]),
  '3' = pi[3] * dnorm(x,mu[3],sigma[3])
-)
+  )
 
-total = rowSums(gamma)
-gamma = gamma / total
-assignments = max.col(gamma)
-
-mu_t = c(sum(gamma[,1] * x) / sum(gamma[,1]),
-         sum(gamma[,2] * x) / sum(gamma[,2]),
-         sum(gamma[,3] * x) / sum(gamma[,3]))
+  gamma 
+}
 
 
-sigma_t = c(
-  sqrt(sum(gamma[,1] * (x - mu_t[1])^2) / sum(gamma[,1])),
-  sqrt(sum(gamma[,2] * (x - mu_t[2])^2) / sum(gamma[,2])),
-  sqrt(sum(gamma[,3] * (x - mu_t[3])^2) / sum(gamma[,3]))
-)
+e_step <- function(x, pi,mu,sigma) {
+  gamma = point_likelihood(x, pi,mu,sigma)
+  total = rowSums(gamma)
+  gamma = gamma / total
+}
+
+m_step <- function(x, gamma,pi,mu,sigma) {
+  
+  mu_t = c(sum(gamma[,1] * x) / sum(gamma[,1]),
+           sum(gamma[,2] * x) / sum(gamma[,2]),
+           sum(gamma[,3] * x) / sum(gamma[,3]))
+  
+  
+  sigma_t = c(
+    sqrt(sum(gamma[,1] * (x - mu_t[1])^2) / sum(gamma[,1])),
+    sqrt(sum(gamma[,2] * (x - mu_t[2])^2) / sum(gamma[,2])),
+    sqrt(sum(gamma[,3] * (x - mu_t[3])^2) / sum(gamma[,3]))
+  )
+
+  assignments = max.col(gamma)
+  pi_t = prop.table(table(assignments))
+  list('mu' = mu_t, 'sigma' = sigma_t, 'pi' = as.vector(pi_t) )  
+}
 
 
-pi_t = prop.table(table(assignments))
-
-mu_t
-sigma_t
-pi_t
-
-mu = mu_t
-sigma = sigma_t
-pi = as.vector(pi_t)
-
-ggplot(data = data.frame(x = c(-20, 45)), aes(x)) +
-  stat_function(fun = dnorm, n = 101, args = list(mean=mu[1], sd=sigma[1])) +
-  stat_function(fun = dnorm, n = 101, args = list(mean=mu[2], sd=sigma[2])) +
-  stat_function(fun = dnorm, n = 101, args = list(mean=mu[3], sd=sigma[3])) +
-  scale_y_continuous()
 
 
 ```
 
 ```{r}
 
-pi = c(0,0,1)
+
+normparams_to_text <-function(pi,mu,sigma) {
+  sprintf("mu: %2.2f \n sigma: %2.2f \n pi: %1.3f", mu, sigma, pi) 
+}
+
+
+plot_distribution <- function(data, step,  pi, mu, sigma) {
+
+  ggplot(data, aes(x = x)  ) +
+  geom_histogram( aes( fill = factor(z) ), binwidth = 1 ) +
+  geom_density( aes(y=1 * ..count.., color = factor(z) ) ) +
+  stat_function(fun = function(x) n * pi[1] * dnorm(x, mean=mu[1], sd=sigma[1]), n = 101 ) +
+  stat_function(fun = function(x) n * pi[2] * dnorm(x, mean=mu[2], sd=sigma[2]), n = 101 ) +
+  stat_function(fun = function(x) n * pi[3] * dnorm(x, mean=mu[3], sd=sigma[3]), n = 101 ) +
+  geom_text(label = normparams_to_text(pi[1],mu[1],sigma[1]), x = mu[1], y = 150 ) +
+  geom_text(label = normparams_to_text(pi[2],mu[2],sigma[2]), x = mu[2], y = 150 ) +
+  geom_text(label = normparams_to_text(pi[3],mu[3],sigma[3]), x = mu[3], y = 150 ) +
+  geom_text(label = sprintf("step %i",step) , x = -10, y = 150 ) +
+  scale_y_continuous(limits = c(0,160))
+  
+}
+
 
 ```
+
+
+
+```{r}
+
+i <- 0
+loglik_before <- loglikelihood(x,params$pi,params$mu,params$sigma)
+  print(loglik_before)
+
+plotlist = list()  
+
+
+  
+repeat {
+  gamma  <- e_step(x, params$pi,params$mu,params$sigma)
+  params <- m_step(x, gamma,params$pi,params$mu,params$sigma)
+  loglik_after <- loglikelihood(x,params$pi,params$mu,params$sigma)
+  print(loglik_after)
+  
+  if (i %% 5 == 0) {
+    l <- length(plotlist) + 1
+    plotlist[[l]] <- plot_distribution(data, i, params$pi,params$mu,params$sigma) 
+  }
+  
+  if ( (loglik_after - loglik_before) < 0.01 ) {
+    break
+  } else {
+    i <- i+1 
+    loglik_before <- loglik_after
+  }
+  
+}
+
+
+```
+
+```{r}
+
+for (i in (1:length(plotlist))) {
+  print(plotlist[[i]])
+}
+
+```
+
